@@ -62,6 +62,76 @@ if (eventRail && prevBtn && nextBtn) {
   updateRailButtons();
 }
 
+// Range slider navigation for events (keeps Prev/Next as well)
+const eventRange = document.querySelector('.event-range');
+if (eventRail && eventRange) {
+  const updateRange = () => {
+    const maxScroll = eventRail.scrollWidth - eventRail.clientWidth;
+    const pct = maxScroll > 0 ? (eventRail.scrollLeft / maxScroll) * 100 : 0;
+    eventRange.value = String(pct);
+  };
+
+  eventRange.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value || 0);
+    const maxScroll = eventRail.scrollWidth - eventRail.clientWidth;
+    eventRail.scrollTo({ left: maxScroll * (val / 100), behavior: 'smooth' });
+  });
+
+  eventRail.addEventListener('scroll', updateRange);
+  window.addEventListener('resize', updateRange);
+  updateRange();
+}
+
+// Duplicate ticker content and set direction-based animation class
+document.querySelectorAll('.ticker-inner').forEach((inner) => {
+  if (inner.dataset._cloned === '1') return;
+  inner.innerHTML = inner.innerHTML + inner.innerHTML;
+  inner.dataset._cloned = '1';
+  const dir = (inner.getAttribute('data-direction') || 'ltr').toLowerCase();
+  if (dir === 'rtl') inner.classList.add('rtl');
+  else inner.classList.add('ltr');
+});
+
+// Contact form: open mailto with form content
+const contactForm = document.getElementById('contactForm');
+if (contactForm) {
+  contactForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const name = (form.name && form.name.value) || '';
+    const email = (form.email && form.email.value) || '';
+    const message = (form.message && form.message.value) || '';
+    const subject = encodeURIComponent(`Richiesta dal sito: ${name || email}`);
+    const body = encodeURIComponent(message + '\n\nContatto: ' + email);
+    window.location.href = `mailto:info@centroestivo.org?subject=${subject}&body=${body}`;
+  });
+}
+
+// Simple auto-gallery behavior
+document.querySelectorAll('.auto-gallery').forEach((gallery) => {
+  const track = gallery.querySelector('.gallery-track');
+  if (!track) return;
+  const imgs = Array.from(track.querySelectorAll('img'));
+  let idx = 0;
+  function show(i) {
+    idx = ((i % imgs.length) + imgs.length) % imgs.length;
+    track.style.transform = `translateX(-${idx * 100}%)`;
+  }
+  const prev = gallery.querySelector('.gallery-prev');
+  const next = gallery.querySelector('.gallery-next');
+  prev && prev.addEventListener('click', () => show(idx - 1));
+  next && next.addEventListener('click', () => show(idx + 1));
+  const autoplay = gallery.dataset.autoplay !== 'false';
+  const interval = parseInt(gallery.dataset.interval) || 3500;
+  let timer;
+  if (autoplay) {
+    timer = setInterval(() => show(idx + 1), interval);
+    gallery.addEventListener('mouseenter', () => clearInterval(timer));
+    gallery.addEventListener('mouseleave', () => { timer = setInterval(() => show(idx + 1), interval); });
+  }
+  show(0);
+});
+
 const sectionObserver = new IntersectionObserver(
   (entries) => {
     entries.forEach((entry) => {

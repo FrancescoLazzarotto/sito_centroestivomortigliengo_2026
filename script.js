@@ -82,10 +82,19 @@ if (eventRail && eventRange) {
   updateRange();
 }
 
-// Duplicate ticker content and set direction-based animation class
+// Duplicate ticker content to ensure a continuous loop without gaps
 document.querySelectorAll('.ticker-inner').forEach((inner) => {
   if (inner.dataset._cloned === '1') return;
-  inner.innerHTML = inner.innerHTML + inner.innerHTML;
+  const parent = inner.parentElement;
+  if (!parent) return;
+  const original = inner.innerHTML;
+  let base = original;
+  inner.innerHTML = base;
+  while (inner.scrollWidth < parent.clientWidth) {
+    base += original;
+    inner.innerHTML = base;
+  }
+  inner.innerHTML = base + base;
   inner.dataset._cloned = '1';
   const dir = (inner.getAttribute('data-direction') || 'ltr').toLowerCase();
   if (dir === 'rtl') inner.classList.add('rtl');

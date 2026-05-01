@@ -65,19 +65,42 @@ if (eventRail && prevBtn && nextBtn) {
 // Range slider navigation for events (keeps Prev/Next as well)
 const eventRange = document.querySelector('.event-range');
 if (eventRail && eventRange) {
+  let isDraggingRange = false;
+
+  const paintRangeProgress = (pct) => {
+    eventRange.style.setProperty('--event-range-progress', `${pct}%`);
+  };
+
   const updateRange = () => {
     const maxScroll = eventRail.scrollWidth - eventRail.clientWidth;
     const pct = maxScroll > 0 ? (eventRail.scrollLeft / maxScroll) * 100 : 0;
     eventRange.value = String(pct);
+    paintRangeProgress(pct);
   };
 
   eventRange.addEventListener('input', (e) => {
+    isDraggingRange = true;
     const val = parseFloat(e.target.value || 0);
     const maxScroll = eventRail.scrollWidth - eventRail.clientWidth;
-    eventRail.scrollTo({ left: maxScroll * (val / 100), behavior: 'smooth' });
+    eventRail.scrollLeft = maxScroll * (val / 100);
+    paintRangeProgress(val);
   });
 
-  eventRail.addEventListener('scroll', updateRange);
+  eventRange.addEventListener('change', () => {
+    isDraggingRange = false;
+    updateRange();
+  });
+
+  ['pointerup', 'mouseup', 'touchend', 'keyup', 'blur'].forEach((eventName) => {
+    eventRange.addEventListener(eventName, () => {
+      isDraggingRange = false;
+      updateRange();
+    });
+  });
+
+  eventRail.addEventListener('scroll', () => {
+    if (!isDraggingRange) updateRange();
+  });
   window.addEventListener('resize', updateRange);
   updateRange();
 }

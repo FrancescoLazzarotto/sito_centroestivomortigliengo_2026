@@ -62,49 +62,6 @@ if (eventRail && prevBtn && nextBtn) {
   updateRailButtons();
 }
 
-// Range slider navigation for events (keeps Prev/Next as well)
-const eventRange = document.querySelector('.event-range');
-if (eventRail && eventRange) {
-  let isDraggingRange = false;
-
-  const paintRangeProgress = (pct) => {
-    eventRange.style.setProperty('--event-range-progress', `${pct}%`);
-  };
-
-  const updateRange = () => {
-    const maxScroll = eventRail.scrollWidth - eventRail.clientWidth;
-    const pct = maxScroll > 0 ? (eventRail.scrollLeft / maxScroll) * 100 : 0;
-    eventRange.value = String(pct);
-    paintRangeProgress(pct);
-  };
-
-  eventRange.addEventListener('input', (e) => {
-    isDraggingRange = true;
-    const val = parseFloat(e.target.value || 0);
-    const maxScroll = eventRail.scrollWidth - eventRail.clientWidth;
-    eventRail.scrollLeft = maxScroll * (val / 100);
-    paintRangeProgress(val);
-  });
-
-  eventRange.addEventListener('change', () => {
-    isDraggingRange = false;
-    updateRange();
-  });
-
-  ['pointerup', 'mouseup', 'touchend', 'keyup', 'blur'].forEach((eventName) => {
-    eventRange.addEventListener(eventName, () => {
-      isDraggingRange = false;
-      updateRange();
-    });
-  });
-
-  eventRail.addEventListener('scroll', () => {
-    if (!isDraggingRange) updateRange();
-  });
-  window.addEventListener('resize', updateRange);
-  updateRange();
-}
-
 // Duplicate ticker content to ensure a continuous loop without gaps
 document.querySelectorAll('.ticker-inner').forEach((inner) => {
   if (inner.dataset._cloned === '1') return;
@@ -164,23 +121,33 @@ document.querySelectorAll('.auto-gallery').forEach((gallery) => {
   show(0);
 });
 
-const sectionObserver = new IntersectionObserver(
-  (entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      const sectionId = entry.target.id;
-      navLinks.forEach((link) => {
-        const isActive = link.getAttribute('href') === `#${sectionId}`;
-        link.classList.toggle('active', isActive);
-      });
-    });
-  },
-  { threshold: 0.5 }
-);
+// Determine active section by visible height (more robust than IntersectionObserver here)
+const sections = Array.from(document.querySelectorAll('main section[id]')).filter((s) => s.id && s.id.trim());
 
-document.querySelectorAll('main section[id]').forEach((section) => {
-  sectionObserver.observe(section);
-});
+function updateActiveSection() {
+  let best = null;
+  let maxVisible = 0;
+  const vh = window.innerHeight || document.documentElement.clientHeight;
+  sections.forEach((section) => {
+    const rect = section.getBoundingClientRect();
+    const visible = Math.max(0, Math.min(rect.bottom, vh) - Math.max(rect.top, 0));
+    if (visible > maxVisible) {
+      maxVisible = visible;
+      best = section;
+    }
+  });
+  if (!best) return;
+  const sectionId = best.id;
+  navLinks.forEach((link) => {
+    link.classList.toggle('active', link.getAttribute('href') === `#${sectionId}`);
+  });
+}
+
+window.addEventListener('scroll', updateActiveSection, { passive: true });
+window.addEventListener('resize', updateActiveSection);
+navLinks.forEach((link) => link.addEventListener('click', () => setTimeout(updateActiveSection, 80)));
+document.addEventListener('DOMContentLoaded', updateActiveSection);
+updateActiveSection();
 
 const yearEl = document.getElementById('year');
 if (yearEl) {
